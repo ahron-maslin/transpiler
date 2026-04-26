@@ -3,13 +3,23 @@ import sys
 import os
 
 from frontend.python.parser import PythonFrontend
+from frontend.javascript.parser import JSFrontend
+from frontend.c.parser import CFrontend
+from frontend.rust.parser import RustFrontend
+from frontend.go.parser import GoFrontend
+from frontend.java.parser import JavaFrontend
 from backend.go.codegen import GoBackend
 from backend.python.codegen import PythonBackend
+from backend.javascript.codegen import JSBackend
+from backend.c.codegen import CBackend
+from backend.rust.codegen import RustBackend
+from backend.java.codegen import JavaBackend
+from passes.type_inference import TypeInferencePass
 
 def main():
     parser = argparse.ArgumentParser(description="Multi-Language Transpiler Framework")
     parser.add_argument("input_file", help="Source file to transpile")
-    parser.add_argument("--to", required=True, choices=["go", "python"], help="Target language")
+    parser.add_argument("--to", required=True, choices=["go", "python", "js", "c", "rust", "java"], help="Target language")
     
     args = parser.parse_args()
     
@@ -27,8 +37,15 @@ def main():
     if ext == ".py":
         frontend = PythonFrontend()
     elif ext == ".js":
-        print("JavaScript frontend not yet implemented.", file=sys.stderr)
-        sys.exit(1)
+        frontend = JSFrontend()
+    elif ext == ".c":
+        frontend = CFrontend()
+    elif ext == ".rs":
+        frontend = RustFrontend()
+    elif ext == ".go":
+        frontend = GoFrontend()
+    elif ext == ".java":
+        frontend = JavaFrontend()
     else:
         print(f"Error: Unsupported source file extension '{ext}'", file=sys.stderr)
         sys.exit(1)
@@ -39,11 +56,22 @@ def main():
         print(f"Frontend Error: {e}", file=sys.stderr)
         sys.exit(1)
         
+    # Run passes
+    TypeInferencePass().execute(ir_program)
+        
     backend = None
     if args.to == "go":
         backend = GoBackend()
     elif args.to == "python":
         backend = PythonBackend()
+    elif args.to == "js":
+        backend = JSBackend()
+    elif args.to == "c":
+        backend = CBackend()
+    elif args.to == "rust":
+        backend = RustBackend()
+    elif args.to == "java":
+        backend = JavaBackend()
         
     try:
         target_code = backend.generate(ir_program)

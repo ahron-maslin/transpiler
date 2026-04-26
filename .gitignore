@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Node/JS
+node_modules/
+.npm
+dist/
+build/
+
+# C
+*.o
+*.a
+*.so
+*.out
+
+# Rust
+target/
+Cargo.lock
+
+# Java
+bin/
+obj/
+*.class
+
+# Test/Misc
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
