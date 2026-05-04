@@ -39,6 +39,13 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+lint.select = ["E", "F", "W"]
+lint.ignore = [
+    "F403", # undefined-local-with-import-star
+    "F405", # undefined-local-with-import-star-usage
+    "E701", # multiple-statements-on-one-line-colon
+    "E501", # line-too-long
+]
 
 [tool.black]
 line-length = 100
