@@ -9,7 +9,8 @@ JS_LANGUAGE = Language(tsjavascript.language(), "javascript")
 
 class JSFrontend:
     def __init__(self):
-        self.parser = Parser(JS_LANGUAGE)
+        self.parser = Parser()
+        self.parser.set_language(JS_LANGUAGE)
 
     def parse(self, source_code: str) -> Program:
         tree = self.parser.parse(bytes(source_code, "utf8"))

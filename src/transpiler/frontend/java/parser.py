@@ -9,7 +9,8 @@ JAVA_LANGUAGE = Language(tsjava.language(), "java")
 
 class JavaFrontend:
     def __init__(self):
-        self.parser = Parser(JAVA_LANGUAGE)
+        self.parser = Parser()
+        self.parser.set_language(JAVA_LANGUAGE)
 
     def parse(self, source_code: str) -> Program:
         tree = self.parser.parse(bytes(source_code, "utf8"))
