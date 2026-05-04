@@ -4,7 +4,7 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-C_LANGUAGE = Language(tsc.language())
+C_LANGUAGE = Language(tsc.language(), "c")
 
 
 class CFrontend:

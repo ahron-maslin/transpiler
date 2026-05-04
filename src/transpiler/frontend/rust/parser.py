@@ -4,7 +4,7 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-RUST_LANGUAGE = Language(tsrust.language())
+RUST_LANGUAGE = Language(tsrust.language(), "rust")
 
 
 class RustFrontend:

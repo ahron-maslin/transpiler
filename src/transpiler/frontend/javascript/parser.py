@@ -4,7 +4,7 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-JS_LANGUAGE = Language(tsjavascript.language())
+JS_LANGUAGE = Language(tsjavascript.language(), "javascript")
 
 
 class JSFrontend:

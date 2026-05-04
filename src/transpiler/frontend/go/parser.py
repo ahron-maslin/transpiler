@@ -4,7 +4,7 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-GO_LANGUAGE = Language(tsgo.language())
+GO_LANGUAGE = Language(tsgo.language(), "go")
 
 
 class GoFrontend:

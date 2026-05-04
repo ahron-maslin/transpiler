@@ -4,7 +4,7 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-JAVA_LANGUAGE = Language(tsjava.language())
+JAVA_LANGUAGE = Language(tsjava.language(), "java")
 
 
 class JavaFrontend:
