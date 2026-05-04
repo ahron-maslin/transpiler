@@ -1,7 +1,7 @@
-from frontend.java.parser import JavaFrontend
-from backend.java.codegen import JavaBackend
-from ir.nodes import *
-from ir.types import *
+from transpiler.frontend.java.parser import JavaFrontend
+from transpiler.backend.java.codegen import JavaBackend
+from transpiler.ir.nodes import *
+from transpiler.ir.types import *
 
 def test_java_frontend_parse():
     source_code = """

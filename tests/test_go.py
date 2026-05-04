@@ -1,7 +1,7 @@
-from frontend.go.parser import GoFrontend
-from backend.go.codegen import GoBackend
-from ir.nodes import *
-from ir.types import *
+from transpiler.frontend.go.parser import GoFrontend
+from transpiler.backend.go.codegen import GoBackend
+from transpiler.ir.nodes import *
+from transpiler.ir.types import *
 
 def test_go_frontend_parse():
     source_code = """

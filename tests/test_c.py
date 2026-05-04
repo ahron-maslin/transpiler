@@ -1,7 +1,7 @@
-from frontend.c.parser import CFrontend
-from backend.c.codegen import CBackend
-from ir.nodes import *
-from ir.types import *
+from transpiler.frontend.c.parser import CFrontend
+from transpiler.backend.c.codegen import CBackend
+from transpiler.ir.nodes import *
+from transpiler.ir.types import *
 
 def test_c_frontend_parse():
     source_code = """

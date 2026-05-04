@@ -1,6 +1,6 @@
-from ir.nodes import *
-from ir.types import *
-from passes.type_inference import TypeInferencePass
+from transpiler.ir.nodes import *
+from transpiler.ir.types import *
+from transpiler.passes.type_inference import TypeInferencePass
 
 def test_type_inference_let_literal():
     # Let x: Any = 10

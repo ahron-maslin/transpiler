@@ -1,7 +1,7 @@
-from frontend.javascript.parser import JSFrontend
-from backend.javascript.codegen import JSBackend
-from ir.nodes import *
-from ir.types import *
+from transpiler.frontend.javascript.parser import JSFrontend
+from transpiler.backend.javascript.codegen import JSBackend
+from transpiler.ir.nodes import *
+from transpiler.ir.types import *
 
 def test_js_frontend_parse():
     source_code = """

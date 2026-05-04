@@ -1,7 +1,7 @@
-from frontend.rust.parser import RustFrontend
-from backend.rust.codegen import RustBackend
-from ir.nodes import *
-from ir.types import *
+from transpiler.frontend.rust.parser import RustFrontend
+from transpiler.backend.rust.codegen import RustBackend
+from transpiler.ir.nodes import *
+from transpiler.ir.types import *
 
 def test_rust_frontend_parse():
     source_code = """

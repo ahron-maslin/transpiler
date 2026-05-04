@@ -1,34 +1,60 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-venv/
-env/
-.env
 
-# Node/JS
-node_modules/
-.npm
-dist/
-build/
-
-# C
-*.o
-*.a
+# C extensions
 *.so
-*.out
 
-# Rust
-target/
-Cargo.lock
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Java
-bin/
-obj/
-*.class
+# PyInstaller
+*.manifest
+*.spec
 
-# Test/Misc
-.pytest_cache/
-.coverage
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
 htmlcov/
-.DS_Store
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# mypy
+.mypy_cache/
