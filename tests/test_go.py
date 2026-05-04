@@ -3,6 +3,7 @@ from transpiler.backend.go.codegen import GoBackend
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 
+
 def test_go_frontend_parse():
     source_code = """
     package main
@@ -12,7 +13,7 @@ def test_go_frontend_parse():
     """
     frontend = GoFrontend()
     program = frontend.parse(source_code)
-    
+
     assert len(program.functions) == 1
     func = program.functions[0]
     assert func.name == "add"
@@ -24,6 +25,7 @@ def test_go_frontend_parse():
     assert isinstance(ret_val, Binary)
     assert ret_val.op == BinOp.ADD
 
+
 def test_go_backend_generate():
     program = Program(
         functions=[
@@ -31,15 +33,13 @@ def test_go_backend_generate():
                 name="add",
                 params=[Param("a", IntType), Param("b", IntType)],
                 return_type=IntType,
-                body=Block([
-                    Return(Binary(BinOp.ADD, Var("a"), Var("b")))
-                ])
+                body=Block([Return(Binary(BinOp.ADD, Var("a"), Var("b")))]),
             )
         ]
     )
-    
+
     backend = GoBackend()
     code = backend.generate(program)
-    
+
     expected = "func add(a int, b int) int {\n\treturn (a + b)\n}\n"
     assert expected.strip() in code.strip()

@@ -3,6 +3,7 @@ from transpiler.backend.c.codegen import CBackend
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 
+
 def test_c_frontend_parse():
     source_code = """
     int add(int a, int b) {
@@ -11,7 +12,7 @@ def test_c_frontend_parse():
     """
     frontend = CFrontend()
     program = frontend.parse(source_code)
-    
+
     assert len(program.functions) == 1
     func = program.functions[0]
     assert func.name == "add"
@@ -23,6 +24,7 @@ def test_c_frontend_parse():
     assert isinstance(ret_val, Binary)
     assert ret_val.op == BinOp.ADD
 
+
 def test_c_backend_generate():
     program = Program(
         functions=[
@@ -30,15 +32,13 @@ def test_c_backend_generate():
                 name="add",
                 params=[Param("a", IntType), Param("b", IntType)],
                 return_type=IntType,
-                body=Block([
-                    Return(Binary(BinOp.ADD, Var("a"), Var("b")))
-                ])
+                body=Block([Return(Binary(BinOp.ADD, Var("a"), Var("b")))]),
             )
         ]
     )
-    
+
     backend = CBackend()
     code = backend.generate(program)
-    
+
     expected = "int add(int a, int b) {\n    return (a + b);\n}\n"
     assert expected.strip() in code.strip()

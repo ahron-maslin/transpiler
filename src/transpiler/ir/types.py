@@ -1,6 +1,7 @@
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List
+
 
 class TypeKind(Enum):
     VOID = "Void"
@@ -15,13 +16,16 @@ class TypeKind(Enum):
     OPTIONAL = "Optional"
     ANY = "Any"
 
+
 @dataclass
 class Type:
     kind: TypeKind
 
+
 @dataclass
 class PrimitiveType(Type):
     pass
+
 
 # Singletons for primitives
 VoidType = PrimitiveType(TypeKind.VOID)
@@ -31,6 +35,7 @@ FloatType = PrimitiveType(TypeKind.FLOAT)
 StringType = PrimitiveType(TypeKind.STRING)
 AnyType = PrimitiveType(TypeKind.ANY)
 
+
 @dataclass
 class ArrayType(Type):
     element_type: Type
@@ -38,6 +43,7 @@ class ArrayType(Type):
     def __init__(self, element_type: Type):
         super().__init__(TypeKind.ARRAY)
         self.element_type = element_type
+
 
 @dataclass
 class MapType(Type):
@@ -49,6 +55,7 @@ class MapType(Type):
         self.key_type = key_type
         self.value_type = value_type
 
+
 @dataclass
 class StructType(Type):
     name: str
@@ -56,6 +63,7 @@ class StructType(Type):
     def __init__(self, name: str):
         super().__init__(TypeKind.STRUCT)
         self.name = name
+
 
 @dataclass
 class FunctionType(Type):
@@ -66,6 +74,7 @@ class FunctionType(Type):
         super().__init__(TypeKind.FUNCTION)
         self.params = params
         self.return_type = return_type
+
 
 @dataclass
 class OptionalType(Type):
