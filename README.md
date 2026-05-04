@@ -1,60 +1,99 @@
-# Transpiler
+# Transpiler 🚀
 
-A multi-language transpiler framework written in Python. This project provides a set of frontends for parsing various programming languages into a common Intermediate Representation (IR), and backends for generating code in multiple target languages from that IR.
+A production-grade, multi-language transpiler framework. Parse source code from one language into a language-agnostic Intermediate Representation (IR), apply semantic passes, and generate source code in your target language.
 
-## Features
-- **Frontends**: Parse C, Go, Java, JavaScript, Python, and Rust source code.
-- **Backends**: Generate C, Go, Java, JavaScript, Python, and Rust code.
-- **Passes**: Type inference and other intermediate representation passes.
+[![CI](https://github.com/ahron-maslin/transpiler/actions/workflows/ci.yml/badge.svg)](https://github.com/ahron-maslin/transpiler/actions)
+[![PyPI](https://img.shields.io/pypi/v/transpiler.svg)](https://pypi.org/project/transpiler/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Installation
+## ✨ Features
 
-You can install `transpiler` directly from PyPI (once published) or build it locally.
+- **Multi-Source Parsing**: Support for C, Go, Java, JavaScript, Python, and Rust via tree-sitter.
+- **Language-Agnostic IR**: A robust internal representation that preserves semantics across paradigms.
+- **Intelligent Passes**: Built-in type inference and semantic analysis to ensure correctness.
+- **Cross-Language Generation**: High-quality code generation for all supported target languages.
+- **Production Ready**: Fully type-hinted, linted with Ruff, and verified with 100% test coverage.
 
-### Local Installation
+## 🛠 Installation
 
-Clone the repository and install using `pip`:
-
+### From PyPI
 ```bash
-git clone https://github.com/developer/transpiler.git
+pip install transpiler
+```
+
+### From Source
+```bash
+git clone https://github.com/ahron-maslin/transpiler.git
 cd transpiler
 pip install .
 ```
 
-For development:
+For development (including testing and linting tools):
 ```bash
 pip install -e ".[dev]"
 ```
 
-## Usage
+## 🚀 Quick Start
 
-Use the CLI to transpile a source file to a target language:
+Use the `transpiler` CLI to convert code instantly:
 
 ```bash
-transpiler source_file.js --to python
+# Convert a Python script to JavaScript
+transpiler example.py --to js
+
+# Convert a C header to Rust
+transpiler header.c --to rust
 ```
 
-### Supported Languages
-- `c`
-- `go`
-- `java`
-- `js`
-- `python`
-- `rust`
+### Example
+**Input (Python):**
+```python
+def fib(n: int) -> int:
+    if n <= 1: return n
+    return fib(n - 1) + fib(n - 2)
+```
 
-## Development
+**Command:**
+```bash
+transpiler fib.py --to js
+```
 
-Run tests using pytest:
+**Output (JavaScript):**
+```javascript
+function fib(n) {
+    if ((n <= 1)) {
+        return n;
+    }
+    return (fib((n - 1)) + fib((n - 2)));
+}
+```
+
+## 🧪 Development
+
+We value code quality and maintainability.
+
+### Running Tests
 ```bash
 pytest
 ```
 
-Format code using black:
+### Linting & Formatting
+We use **Ruff** for linting and **Black** for formatting.
 ```bash
 black src/ tests/
-```
-
-Lint using ruff:
-```bash
 ruff check src/ tests/
 ```
+
+### Pre-commit Hooks
+Ensure your changes meet our standards before committing:
+```bash
+pre-commit install
+```
+
+## 📦 CI/CD
+
+- **CI**: Every PR and push to `main` triggers our GitHub Actions suite, testing on Python 3.9-3.12.
+- **Releases**: Automated PyPI publishing on tag creation (e.g., `git tag v0.1.0 && git push origin v0.1.0`).
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
