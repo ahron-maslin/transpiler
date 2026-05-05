@@ -4,13 +4,12 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-GO_LANGUAGE = Language(tsgo.language(), "go")
+GO_LANGUAGE = Language(tsgo.language())
 
 
 class GoFrontend:
     def __init__(self):
-        self.parser = Parser()
-        self.parser.set_language(GO_LANGUAGE)
+        self.parser = Parser(GO_LANGUAGE)
 
     def parse(self, source_code: str) -> Program:
         tree = self.parser.parse(bytes(source_code, "utf8"))

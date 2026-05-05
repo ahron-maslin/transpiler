@@ -4,13 +4,12 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-C_LANGUAGE = Language(tsc.language(), "c")
+C_LANGUAGE = Language(tsc.language())
 
 
 class CFrontend:
     def __init__(self):
-        self.parser = Parser()
-        self.parser.set_language(C_LANGUAGE)
+        self.parser = Parser(C_LANGUAGE)
 
     def parse(self, source_code: str) -> Program:
         tree = self.parser.parse(bytes(source_code, "utf8"))

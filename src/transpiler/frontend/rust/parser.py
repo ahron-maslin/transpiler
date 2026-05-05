@@ -4,13 +4,12 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-RUST_LANGUAGE = Language(tsrust.language(), "rust")
+RUST_LANGUAGE = Language(tsrust.language())
 
 
 class RustFrontend:
     def __init__(self):
-        self.parser = Parser()
-        self.parser.set_language(RUST_LANGUAGE)
+        self.parser = Parser(RUST_LANGUAGE)
 
     def parse(self, source_code: str) -> Program:
         tree = self.parser.parse(bytes(source_code, "utf8"))

@@ -4,13 +4,12 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-JAVA_LANGUAGE = Language(tsjava.language(), "java")
+JAVA_LANGUAGE = Language(tsjava.language())
 
 
 class JavaFrontend:
     def __init__(self):
-        self.parser = Parser()
-        self.parser.set_language(JAVA_LANGUAGE)
+        self.parser = Parser(JAVA_LANGUAGE)
 
     def parse(self, source_code: str) -> Program:
         tree = self.parser.parse(bytes(source_code, "utf8"))

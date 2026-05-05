@@ -4,13 +4,12 @@ from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from typing import Optional
 
-JS_LANGUAGE = Language(tsjavascript.language(), "javascript")
+JS_LANGUAGE = Language(tsjavascript.language())
 
 
 class JSFrontend:
     def __init__(self):
-        self.parser = Parser()
-        self.parser.set_language(JS_LANGUAGE)
+        self.parser = Parser(JS_LANGUAGE)
 
     def parse(self, source_code: str) -> Program:
         tree = self.parser.parse(bytes(source_code, "utf8"))
