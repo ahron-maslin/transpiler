@@ -79,6 +79,30 @@ class JSFrontend:
                     name = name_node.text.decode("utf8") if name_node else ""
                     val = self._visit_expr(val_node) if val_node else NullLiteral()
                     return Let(name=name, type=AnyType, value=val)
+        elif node.type == "if_statement":
+            cond_node = node.child_by_field_name("condition")
+            then_node = node.child_by_field_name("consequence")
+            else_node = node.child_by_field_name("alternative")
+            cond = self._visit_expr(cond_node) if cond_node else BoolLiteral(True)
+            if hasattr(cond_node, 'type') and cond_node.type == "parenthesized_expression":
+                for child in cond_node.children:
+                    if child.is_named:
+                        cond = self._visit_expr(child)
+                        break
+            then_block = self._visit_block(then_node) if then_node else Block()
+            else_block = self._visit_block(else_node) if else_node else None
+            return If(condition=cond, then_block=then_block, else_block=else_block)
+        elif node.type == "while_statement":
+            cond_node = node.child_by_field_name("condition")
+            body_node = node.child_by_field_name("body")
+            cond = self._visit_expr(cond_node) if cond_node else BoolLiteral(True)
+            if hasattr(cond_node, 'type') and cond_node.type == "parenthesized_expression":
+                for child in cond_node.children:
+                    if child.is_named:
+                        cond = self._visit_expr(child)
+                        break
+            body = self._visit_block(body_node) if body_node else Block()
+            return While(condition=cond, body=body)
         return None
 
     def _visit_expr(self, node: Node) -> Expr:
@@ -136,4 +160,8 @@ class JSFrontend:
                     return Binary(
                         op=op, left=self._visit_expr(left_node), right=self._visit_expr(right_node)
                     )
+        elif node.type == "parenthesized_expression":
+            for child in node.children:
+                if child.is_named:
+                    return self._visit_expr(child)
         return NullLiteral()

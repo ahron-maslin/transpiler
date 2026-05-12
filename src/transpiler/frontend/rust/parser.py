@@ -165,4 +165,8 @@ class RustFrontend:
                     return Binary(
                         op=op, left=self._visit_expr(left_node), right=self._visit_expr(right_node)
                     )
+        elif node.type == "parenthesized_expression":
+            for child in node.children:
+                if child.is_named:
+                    return self._visit_expr(child)
         return NullLiteral()
