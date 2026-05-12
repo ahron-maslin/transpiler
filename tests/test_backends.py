@@ -1,5 +1,4 @@
 """Backend codegen tests for Go, Rust, Java, JS — control flow, literals, structs."""
-import pytest
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from transpiler.backend.go.codegen import GoBackend

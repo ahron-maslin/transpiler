@@ -2,7 +2,6 @@ from transpiler.frontend.python.parser import PythonFrontend
 from transpiler.backend.python.codegen import PythonBackend
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
-import pytest
 
 def test_python_frontend_parse():
     source_code = """
@@ -51,21 +50,21 @@ def calc() -> int:
 """
     frontend = PythonFrontend()
     program = frontend.parse(source_code)
-    
+
     func = program.functions[0]
     stmts = func.body.statements
-    
+
     assert isinstance(stmts[0], Let)
     assert stmts[0].name == "a"
     assert stmts[0].type.kind == TypeKind.INT
     assert isinstance(stmts[0].value, IntLiteral)
     assert stmts[0].value.value == 10
-    
+
     assert isinstance(stmts[1], Assign)
     assert isinstance(stmts[1].target, Var)
     assert stmts[1].target.name == "b"
     assert isinstance(stmts[1].value, IntLiteral)
-    
+
     assert isinstance(stmts[2], Assign)
     assert stmts[2].target.name == "c"
     val = stmts[2].value
@@ -92,7 +91,7 @@ def test_python_backend_assign_complex():
     )
     backend = PythonBackend()
     code = backend.generate(program)
-    
+
     assert "a: int = 10" in code
     assert "b = 20" in code
     assert "c = ((a + b) * 2)" in code

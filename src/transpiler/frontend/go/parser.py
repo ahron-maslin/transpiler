@@ -120,14 +120,14 @@ class GoFrontend:
                     val_node = child.child_by_field_name("value")
                     type_node = child.child_by_field_name("type")
                     name = name_node.text.decode("utf8") if name_node else ""
-                    
+
                     val = NullLiteral()
                     if val_node:
                         for e_child in val_node.children:
                             if e_child.is_named:
                                 val = self._visit_expr(e_child)
                                 break
-                    
+
                     typ = self._parse_type(type_node.text.decode("utf8")) if type_node else AnyType
                     return Let(name=name, type=typ, value=val)
         elif node.type == "if_statement":

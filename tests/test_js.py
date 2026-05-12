@@ -54,17 +54,17 @@ def test_js_frontend_assign_complex():
     """
     frontend = JSFrontend()
     program = frontend.parse(source_code)
-    
+
     func = program.functions[0]
     stmts = func.body.statements
-    
+
     assert isinstance(stmts[0], Let)
     assert stmts[0].name == "a"
     assert isinstance(stmts[0].value, IntLiteral)
-    
+
     assert isinstance(stmts[1], Let)
     assert stmts[1].name == "b"
-    
+
     assert isinstance(stmts[2], Let)
     assert stmts[2].name == "c"
     val = stmts[2].value
@@ -72,7 +72,7 @@ def test_js_frontend_assign_complex():
     assert val.op == BinOp.MUL
     assert isinstance(val.left, Binary)
     assert val.left.op == BinOp.ADD
-    
+
     assert isinstance(stmts[3], Return)
     assert isinstance(stmts[3].value, Var)
     assert stmts[3].value.name == "c"
