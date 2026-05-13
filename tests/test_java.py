@@ -45,6 +45,7 @@ def test_java_backend_generate():
     expected = "public static int add(int a, int b) {\n        return (a + b);\n    }"
     assert expected.strip() in code.strip()
 
+
 def test_java_frontend_assign_complex():
     source_code = """
     class Main {

@@ -43,6 +43,7 @@ def test_js_backend_generate():
     expected = "function add(a, b) {\n    return (a + b);\n}\n"
     assert code.strip() == expected.strip()
 
+
 def test_js_frontend_assign_complex():
     source_code = """
     function calc() {

@@ -43,6 +43,7 @@ def test_rust_backend_generate():
     expected = "fn add(a: i32, b: i32) -> i32 {\n    return (a + b);\n}\n"
     assert expected.strip() in code.strip()
 
+
 def test_rust_frontend_assign_complex():
     source_code = """
     fn calc() -> i32 {

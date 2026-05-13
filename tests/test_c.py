@@ -43,6 +43,7 @@ def test_c_backend_generate():
     expected = "int add(int a, int b) {\n    return (a + b);\n}\n"
     assert expected.strip() in code.strip()
 
+
 def test_c_frontend_assign_complex():
     source_code = """
     int calc() {

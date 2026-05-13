@@ -44,6 +44,7 @@ def test_go_backend_generate():
     expected = "func add(a int, b int) int {\n\treturn (a + b)\n}\n"
     assert expected.strip() in code.strip()
 
+
 def test_go_frontend_assign_complex():
     source_code = """
     package main

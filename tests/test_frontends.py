@@ -1,6 +1,7 @@
 """Extended frontend parser tests for tree-sitter-based languages (C, Go, Java, JS, Rust).
 Tests control flow, boolean/string/float literals, function calls, comparisons.
 """
+
 import pytest
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
@@ -10,10 +11,10 @@ from transpiler.frontend.java.parser import JavaFrontend
 from transpiler.frontend.javascript.parser import JSFrontend
 from transpiler.frontend.rust.parser import RustFrontend
 
-
 # ---------------------------------------------------------------------------
 # C frontend
 # ---------------------------------------------------------------------------
+
 
 class TestCFrontendExtended:
     def setup_method(self):
@@ -119,6 +120,7 @@ class TestCFrontendExtended:
 # Go frontend
 # ---------------------------------------------------------------------------
 
+
 class TestGoFrontendExtended:
     def setup_method(self):
         self.fe = GoFrontend()
@@ -197,6 +199,7 @@ class TestGoFrontendExtended:
 # ---------------------------------------------------------------------------
 # Java frontend
 # ---------------------------------------------------------------------------
+
 
 class TestJavaFrontendExtended:
     def setup_method(self):
@@ -280,6 +283,7 @@ class TestJavaFrontendExtended:
 # JS frontend
 # ---------------------------------------------------------------------------
 
+
 class TestJSFrontendExtended:
     def setup_method(self):
         self.fe = JSFrontend()
@@ -360,6 +364,7 @@ class TestJSFrontendExtended:
 # ---------------------------------------------------------------------------
 # Rust frontend
 # ---------------------------------------------------------------------------
+
 
 class TestRustFrontendExtended:
     def setup_method(self):

@@ -1,4 +1,5 @@
 """Edge case tests for parser frontends, backends, and IR invariants."""
+
 import pytest
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
@@ -8,10 +9,10 @@ from transpiler.backend.python.codegen import PythonBackend
 from transpiler.backend.c.codegen import CBackend
 from transpiler.backend.javascript.codegen import JSBackend
 
-
 # ---------------------------------------------------------------------------
 # IR invariant tests
 # ---------------------------------------------------------------------------
+
 
 class TestIRNodeConstruction:
     """Verify IR nodes can be constructed and hold correct data."""
@@ -46,8 +47,19 @@ class TestIRNodeConstruction:
 
     def test_all_typekind_values(self):
         """TypeKind enum should contain all expected kinds."""
-        expected = {"Void", "Bool", "Int", "Float", "String", "Array", "Map",
-                    "Struct", "Function", "Optional", "Any"}
+        expected = {
+            "Void",
+            "Bool",
+            "Int",
+            "Float",
+            "String",
+            "Array",
+            "Map",
+            "Struct",
+            "Function",
+            "Optional",
+            "Any",
+        }
         actual = {tk.value for tk in TypeKind}
         assert actual == expected
 
@@ -106,118 +118,203 @@ class TestIRNodeConstruction:
 # Type inference edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestTypeInference:
     def _run(self, program):
         TypeInferencePass().execute(program)
         return program
 
     def test_comparison_returns_bool(self):
-        prog = self._run(Program(functions=[
-            Function("f", [Param("x", IntType)], VoidType, Block([
-                Let("r", AnyType, Binary(BinOp.LT, Var("x"), IntLiteral(10)))
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function(
+                        "f",
+                        [Param("x", IntType)],
+                        VoidType,
+                        Block([Let("r", AnyType, Binary(BinOp.LT, Var("x"), IntLiteral(10)))]),
+                    )
+                ]
+            )
+        )
         assert prog.functions[0].body.statements[0].type.kind == TypeKind.BOOL
 
     def test_logical_and_returns_bool(self):
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                Let("r", AnyType, Binary(BinOp.AND, BoolLiteral(True), BoolLiteral(False)))
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function(
+                        "f",
+                        [],
+                        VoidType,
+                        Block(
+                            [
+                                Let(
+                                    "r",
+                                    AnyType,
+                                    Binary(BinOp.AND, BoolLiteral(True), BoolLiteral(False)),
+                                )
+                            ]
+                        ),
+                    )
+                ]
+            )
+        )
         assert prog.functions[0].body.statements[0].type.kind == TypeKind.BOOL
 
     def test_float_literal_inferred(self):
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                Let("x", AnyType, FloatLiteral(3.14))
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function("f", [], VoidType, Block([Let("x", AnyType, FloatLiteral(3.14))]))
+                ]
+            )
+        )
         assert prog.functions[0].body.statements[0].type.kind == TypeKind.FLOAT
 
     def test_string_literal_inferred(self):
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                Let("s", AnyType, StringLiteral("hello"))
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function("f", [], VoidType, Block([Let("s", AnyType, StringLiteral("hello"))]))
+                ]
+            )
+        )
         assert prog.functions[0].body.statements[0].type.kind == TypeKind.STRING
 
     def test_bool_literal_inferred(self):
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                Let("b", AnyType, BoolLiteral(True))
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function("f", [], VoidType, Block([Let("b", AnyType, BoolLiteral(True))]))
+                ]
+            )
+        )
         assert prog.functions[0].body.statements[0].type.kind == TypeKind.BOOL
 
     def test_explicit_type_not_overridden(self):
         """If the Let already has a concrete type, inference should not change it."""
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                Let("x", FloatType, IntLiteral(42))
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function("f", [], VoidType, Block([Let("x", FloatType, IntLiteral(42))]))
+                ]
+            )
+        )
         assert prog.functions[0].body.statements[0].type.kind == TypeKind.FLOAT
 
     def test_chained_let_propagation(self):
         """let x = 10; let y = x + 1; => y should be Int."""
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                Let("x", AnyType, IntLiteral(10)),
-                Let("y", AnyType, Binary(BinOp.ADD, Var("x"), IntLiteral(1))),
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function(
+                        "f",
+                        [],
+                        VoidType,
+                        Block(
+                            [
+                                Let("x", AnyType, IntLiteral(10)),
+                                Let("y", AnyType, Binary(BinOp.ADD, Var("x"), IntLiteral(1))),
+                            ]
+                        ),
+                    )
+                ]
+            )
+        )
         stmts = prog.functions[0].body.statements
         assert stmts[0].type.kind == TypeKind.INT
         assert stmts[1].type.kind == TypeKind.INT
 
     def test_null_literal_stays_any(self):
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                Let("n", AnyType, NullLiteral())
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[Function("f", [], VoidType, Block([Let("n", AnyType, NullLiteral())]))]
+            )
+        )
         assert prog.functions[0].body.statements[0].type.kind == TypeKind.ANY
 
     def test_call_infers_return_type(self):
-        prog = self._run(Program(functions=[
-            Function("add", [Param("a", IntType), Param("b", IntType)], IntType,
-                     Block([Return(Binary(BinOp.ADD, Var("a"), Var("b")))])),
-            Function("main", [], VoidType, Block([
-                Let("r", AnyType, Call(Var("add"), [IntLiteral(1), IntLiteral(2)]))
-            ])),
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function(
+                        "add",
+                        [Param("a", IntType), Param("b", IntType)],
+                        IntType,
+                        Block([Return(Binary(BinOp.ADD, Var("a"), Var("b")))]),
+                    ),
+                    Function(
+                        "main",
+                        [],
+                        VoidType,
+                        Block(
+                            [Let("r", AnyType, Call(Var("add"), [IntLiteral(1), IntLiteral(2)]))]
+                        ),
+                    ),
+                ]
+            )
+        )
         main_let = prog.functions[1].body.statements[0]
         assert main_let.type.kind == TypeKind.INT
 
     def test_unknown_function_call_stays_any(self):
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                Let("r", AnyType, Call(Var("unknown"), []))
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function(
+                        "f", [], VoidType, Block([Let("r", AnyType, Call(Var("unknown"), []))])
+                    )
+                ]
+            )
+        )
         assert prog.functions[0].body.statements[0].type.kind == TypeKind.ANY
 
     def test_inference_inside_if_block(self):
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                If(BoolLiteral(True),
-                   then_block=Block([Let("x", AnyType, IntLiteral(5))]),
-                   else_block=Block([Let("y", AnyType, StringLiteral("hi"))]))
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function(
+                        "f",
+                        [],
+                        VoidType,
+                        Block(
+                            [
+                                If(
+                                    BoolLiteral(True),
+                                    then_block=Block([Let("x", AnyType, IntLiteral(5))]),
+                                    else_block=Block([Let("y", AnyType, StringLiteral("hi"))]),
+                                )
+                            ]
+                        ),
+                    )
+                ]
+            )
+        )
         if_stmt = prog.functions[0].body.statements[0]
         assert if_stmt.then_block.statements[0].type.kind == TypeKind.INT
         assert if_stmt.else_block.statements[0].type.kind == TypeKind.STRING
 
     def test_inference_inside_while_block(self):
-        prog = self._run(Program(functions=[
-            Function("f", [], VoidType, Block([
-                While(BoolLiteral(True),
-                      body=Block([Let("i", AnyType, IntLiteral(0))]))
-            ]))
-        ]))
+        prog = self._run(
+            Program(
+                functions=[
+                    Function(
+                        "f",
+                        [],
+                        VoidType,
+                        Block(
+                            [
+                                While(
+                                    BoolLiteral(True),
+                                    body=Block([Let("i", AnyType, IntLiteral(0))]),
+                                )
+                            ]
+                        ),
+                    )
+                ]
+            )
+        )
         while_stmt = prog.functions[0].body.statements[0]
         assert while_stmt.body.statements[0].type.kind == TypeKind.INT
 
@@ -225,6 +322,7 @@ class TestTypeInference:
 # ---------------------------------------------------------------------------
 # Python frontend edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestPythonFrontendEdgeCases:
     def setup_method(self):
@@ -336,13 +434,16 @@ def cmp(a: int, b: int) -> bool:
         assert isinstance(ret, Binary)
         assert ret.op == BinOp.EQ
 
-    @pytest.mark.parametrize("op_str,expected_op", [
-        ("a + b", BinOp.ADD),
-        ("a - b", BinOp.SUB),
-        ("a * b", BinOp.MUL),
-        ("a / b", BinOp.DIV),
-        ("a % b", BinOp.MOD),
-    ])
+    @pytest.mark.parametrize(
+        "op_str,expected_op",
+        [
+            ("a + b", BinOp.ADD),
+            ("a - b", BinOp.SUB),
+            ("a * b", BinOp.MUL),
+            ("a / b", BinOp.DIV),
+            ("a % b", BinOp.MOD),
+        ],
+    )
     def test_arithmetic_operators(self, op_str, expected_op):
         code = f"""
 def f(a: int, b: int) -> int:
@@ -392,18 +493,23 @@ def noop():
 # Backend codegen edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestBackendEdgeCases:
     def _make_program(self, stmts, params=None, ret=VoidType):
-        return Program(functions=[
-            Function("test_fn", params or [], ret, Block(stmts))
-        ])
+        return Program(functions=[Function("test_fn", params or [], ret, Block(stmts))])
 
     def test_c_if_else_codegen(self):
-        prog = self._make_program([
-            If(Binary(BinOp.GT, Var("x"), IntLiteral(0)),
-               then_block=Block([Return(IntLiteral(1))]),
-               else_block=Block([Return(IntLiteral(0))]))
-        ], params=[Param("x", IntType)], ret=IntType)
+        prog = self._make_program(
+            [
+                If(
+                    Binary(BinOp.GT, Var("x"), IntLiteral(0)),
+                    then_block=Block([Return(IntLiteral(1))]),
+                    else_block=Block([Return(IntLiteral(0))]),
+                )
+            ],
+            params=[Param("x", IntType)],
+            ret=IntType,
+        )
         code = CBackend().generate(prog)
         assert "if ((x > 0))" in code
         assert "return 1;" in code
@@ -411,11 +517,15 @@ class TestBackendEdgeCases:
         assert "return 0;" in code
 
     def test_c_while_codegen(self):
-        prog = self._make_program([
-            Let("i", IntType, IntLiteral(0)),
-            While(Binary(BinOp.LT, Var("i"), IntLiteral(10)),
-                  body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]))
-        ])
+        prog = self._make_program(
+            [
+                Let("i", IntType, IntLiteral(0)),
+                While(
+                    Binary(BinOp.LT, Var("i"), IntLiteral(10)),
+                    body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]),
+                ),
+            ]
+        )
         code = CBackend().generate(prog)
         assert "int i = 0;" in code
         assert "while ((i < 10))" in code
@@ -437,22 +547,32 @@ class TestBackendEdgeCases:
         assert 'return "hello";' in code
 
     def test_js_if_else_codegen(self):
-        prog = self._make_program([
-            If(Binary(BinOp.GT, Var("x"), IntLiteral(0)),
-               then_block=Block([Return(IntLiteral(1))]),
-               else_block=Block([Return(IntLiteral(0))]))
-        ], params=[Param("x", IntType)])
+        prog = self._make_program(
+            [
+                If(
+                    Binary(BinOp.GT, Var("x"), IntLiteral(0)),
+                    then_block=Block([Return(IntLiteral(1))]),
+                    else_block=Block([Return(IntLiteral(0))]),
+                )
+            ],
+            params=[Param("x", IntType)],
+        )
         code = JSBackend().generate(prog)
         assert "if ((x > 0))" in code
         assert "return 1;" in code
         assert "else" in code
 
     def test_python_if_else_codegen(self):
-        prog = self._make_program([
-            If(Binary(BinOp.GT, Var("x"), IntLiteral(0)),
-               then_block=Block([Return(IntLiteral(1))]),
-               else_block=Block([Return(IntLiteral(0))]))
-        ], params=[Param("x", IntType)])
+        prog = self._make_program(
+            [
+                If(
+                    Binary(BinOp.GT, Var("x"), IntLiteral(0)),
+                    then_block=Block([Return(IntLiteral(1))]),
+                    else_block=Block([Return(IntLiteral(0))]),
+                )
+            ],
+            params=[Param("x", IntType)],
+        )
         code = PythonBackend().generate(prog)
         assert "if (x > 0):" in code
         assert "return 1" in code
@@ -460,10 +580,9 @@ class TestBackendEdgeCases:
         assert "return 0" in code
 
     def test_python_while_codegen(self):
-        prog = self._make_program([
-            While(Binary(BinOp.LT, Var("i"), IntLiteral(10)),
-                  body=Block([ExprStmt(Var("i"))]))
-        ])
+        prog = self._make_program(
+            [While(Binary(BinOp.LT, Var("i"), IntLiteral(10)), body=Block([ExprStmt(Var("i"))]))]
+        )
         code = PythonBackend().generate(prog)
         assert "while (i < 10):" in code
 
@@ -497,9 +616,7 @@ class TestBackendEdgeCases:
         assert "return p.x;" in code
 
     def test_c_call_codegen(self):
-        prog = self._make_program([
-            ExprStmt(Call(Var("add"), [IntLiteral(1), IntLiteral(2)]))
-        ])
+        prog = self._make_program([ExprStmt(Call(Var("add"), [IntLiteral(1), IntLiteral(2)]))])
         code = CBackend().generate(prog)
         assert "add(1, 2);" in code
 
@@ -523,6 +640,7 @@ class TestBackendEdgeCases:
 # CLI edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestCLIEdgeCases:
     def test_cross_language_transpile(self, tmp_path, capsys):
         """Transpile Python -> C."""
@@ -533,7 +651,7 @@ class TestCLIEdgeCases:
         test_file = tmp_path / "test.py"
         test_file.write_text("def add(a: int, b: int) -> int:\n    return a + b\n")
 
-        with patch.object(sys, 'argv', ['transpiler', str(test_file), '--to', 'c']):
+        with patch.object(sys, "argv", ["transpiler", str(test_file), "--to", "c"]):
             main()
 
         out, err = capsys.readouterr()
@@ -547,9 +665,9 @@ class TestCLIEdgeCases:
         from transpiler.cli.main import main
 
         test_file = tmp_path / "test.py"
-        test_file.write_text("def greet():\n    return \"hello\"\n")
+        test_file.write_text('def greet():\n    return "hello"\n')
 
-        with patch.object(sys, 'argv', ['transpiler', str(test_file), '--to', 'js']):
+        with patch.object(sys, "argv", ["transpiler", str(test_file), "--to", "js"]):
             main()
 
         out, err = capsys.readouterr()
@@ -566,7 +684,7 @@ class TestCLIEdgeCases:
         test_file = tmp_path / "test.py"
         test_file.write_bytes(b"def add(a: int, b: int) -> int:\r\n    return a + b\r\n")
 
-        with patch.object(sys, 'argv', ['transpiler', str(test_file), '--to', 'python']):
+        with patch.object(sys, "argv", ["transpiler", str(test_file), "--to", "python"]):
             main()
 
         out, err = capsys.readouterr()
@@ -579,7 +697,7 @@ class TestCLIEdgeCases:
         from unittest.mock import patch
         from transpiler.cli.main import main
 
-        with patch.object(sys, 'argv', ['transpiler', 'some_file.py']):
+        with patch.object(sys, "argv", ["transpiler", "some_file.py"]):
             with pytest.raises(SystemExit) as e:
                 main()
             assert e.value.code == 2  # argparse error code

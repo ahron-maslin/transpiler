@@ -1,4 +1,5 @@
 """Backend codegen tests for Go, Rust, Java, JS — control flow, literals, structs."""
+
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 from transpiler.backend.go.codegen import GoBackend
@@ -8,22 +9,27 @@ from transpiler.backend.javascript.codegen import JSBackend
 
 
 def _prog(stmts, params=None, ret=VoidType, name="test_fn"):
-    return Program(functions=[
-        Function(name, params or [], ret, Block(stmts))
-    ])
+    return Program(functions=[Function(name, params or [], ret, Block(stmts))])
 
 
 # ---------------------------------------------------------------------------
 # Go backend
 # ---------------------------------------------------------------------------
 
+
 class TestGoBackend:
     def test_if_else(self):
-        prog = _prog([
-            If(Binary(BinOp.GT, Var("x"), IntLiteral(0)),
-               then_block=Block([Return(IntLiteral(1))]),
-               else_block=Block([Return(IntLiteral(0))]))
-        ], params=[Param("x", IntType)], ret=IntType)
+        prog = _prog(
+            [
+                If(
+                    Binary(BinOp.GT, Var("x"), IntLiteral(0)),
+                    then_block=Block([Return(IntLiteral(1))]),
+                    else_block=Block([Return(IntLiteral(0))]),
+                )
+            ],
+            params=[Param("x", IntType)],
+            ret=IntType,
+        )
         code = GoBackend().generate(prog)
         assert "if (x > 0)" in code
         assert "return 1" in code
@@ -31,10 +37,14 @@ class TestGoBackend:
         assert "return 0" in code
 
     def test_while_as_for(self):
-        prog = _prog([
-            While(Binary(BinOp.LT, Var("i"), IntLiteral(10)),
-                  body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]))
-        ])
+        prog = _prog(
+            [
+                While(
+                    Binary(BinOp.LT, Var("i"), IntLiteral(10)),
+                    body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]),
+                )
+            ]
+        )
         code = GoBackend().generate(prog)
         assert "for (i < 10)" in code
         assert "i = (i + 1)" in code
@@ -55,10 +65,12 @@ class TestGoBackend:
         assert "return nil" in code
 
     def test_bool_literals(self):
-        prog = _prog([
-            Let("a", BoolType, BoolLiteral(True)),
-            Let("b", BoolType, BoolLiteral(False)),
-        ])
+        prog = _prog(
+            [
+                Let("a", BoolType, BoolLiteral(True)),
+                Let("b", BoolType, BoolLiteral(False)),
+            ]
+        )
         code = GoBackend().generate(prog)
         assert "true" in code
         assert "false" in code
@@ -125,13 +137,20 @@ class TestGoBackend:
 # Rust backend
 # ---------------------------------------------------------------------------
 
+
 class TestRustBackend:
     def test_if_else(self):
-        prog = _prog([
-            If(Binary(BinOp.GT, Var("x"), IntLiteral(0)),
-               then_block=Block([Return(IntLiteral(1))]),
-               else_block=Block([Return(IntLiteral(0))]))
-        ], params=[Param("x", IntType)], ret=IntType)
+        prog = _prog(
+            [
+                If(
+                    Binary(BinOp.GT, Var("x"), IntLiteral(0)),
+                    then_block=Block([Return(IntLiteral(1))]),
+                    else_block=Block([Return(IntLiteral(0))]),
+                )
+            ],
+            params=[Param("x", IntType)],
+            ret=IntType,
+        )
         code = RustBackend().generate(prog)
         assert "if (x > 0)" in code
         assert "return 1;" in code
@@ -139,10 +158,14 @@ class TestRustBackend:
         assert "return 0;" in code
 
     def test_while(self):
-        prog = _prog([
-            While(Binary(BinOp.LT, Var("i"), IntLiteral(10)),
-                  body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]))
-        ])
+        prog = _prog(
+            [
+                While(
+                    Binary(BinOp.LT, Var("i"), IntLiteral(10)),
+                    body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]),
+                )
+            ]
+        )
         code = RustBackend().generate(prog)
         assert "while (i < 10)" in code
         assert "i = (i + 1);" in code
@@ -231,13 +254,20 @@ class TestRustBackend:
 # Java backend
 # ---------------------------------------------------------------------------
 
+
 class TestJavaBackend:
     def test_if_else(self):
-        prog = _prog([
-            If(Binary(BinOp.GT, Var("x"), IntLiteral(0)),
-               then_block=Block([Return(IntLiteral(1))]),
-               else_block=Block([Return(IntLiteral(0))]))
-        ], params=[Param("x", IntType)], ret=IntType)
+        prog = _prog(
+            [
+                If(
+                    Binary(BinOp.GT, Var("x"), IntLiteral(0)),
+                    then_block=Block([Return(IntLiteral(1))]),
+                    else_block=Block([Return(IntLiteral(0))]),
+                )
+            ],
+            params=[Param("x", IntType)],
+            ret=IntType,
+        )
         code = JavaBackend().generate(prog)
         assert "if ((x > 0))" in code
         assert "return 1;" in code
@@ -245,10 +275,14 @@ class TestJavaBackend:
         assert "return 0;" in code
 
     def test_while(self):
-        prog = _prog([
-            While(Binary(BinOp.LT, Var("i"), IntLiteral(10)),
-                  body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]))
-        ])
+        prog = _prog(
+            [
+                While(
+                    Binary(BinOp.LT, Var("i"), IntLiteral(10)),
+                    body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]),
+                )
+            ]
+        )
         code = JavaBackend().generate(prog)
         assert "while ((i < 10))" in code
         assert "i = (i + 1);" in code
@@ -333,13 +367,19 @@ class TestJavaBackend:
 # JS backend
 # ---------------------------------------------------------------------------
 
+
 class TestJSBackend:
     def test_if_else(self):
-        prog = _prog([
-            If(Binary(BinOp.GT, Var("x"), IntLiteral(0)),
-               then_block=Block([Return(IntLiteral(1))]),
-               else_block=Block([Return(IntLiteral(0))]))
-        ], params=[Param("x", IntType)])
+        prog = _prog(
+            [
+                If(
+                    Binary(BinOp.GT, Var("x"), IntLiteral(0)),
+                    then_block=Block([Return(IntLiteral(1))]),
+                    else_block=Block([Return(IntLiteral(0))]),
+                )
+            ],
+            params=[Param("x", IntType)],
+        )
         code = JSBackend().generate(prog)
         assert "if ((x > 0))" in code
         assert "return 1;" in code
@@ -347,10 +387,14 @@ class TestJSBackend:
         assert "return 0;" in code
 
     def test_while(self):
-        prog = _prog([
-            While(Binary(BinOp.LT, Var("i"), IntLiteral(10)),
-                  body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]))
-        ])
+        prog = _prog(
+            [
+                While(
+                    Binary(BinOp.LT, Var("i"), IntLiteral(10)),
+                    body=Block([Assign(Var("i"), Binary(BinOp.ADD, Var("i"), IntLiteral(1)))]),
+                )
+            ]
+        )
         code = JSBackend().generate(prog)
         assert "while ((i < 10))" in code
         assert "i = (i + 1);" in code

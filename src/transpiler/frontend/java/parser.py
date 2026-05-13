@@ -110,7 +110,7 @@ class JavaFrontend:
             then_node = node.child_by_field_name("consequence")
             else_node = node.child_by_field_name("alternative")
             cond = self._visit_expr(cond_node) if cond_node else BoolLiteral(True)
-            if hasattr(cond_node, 'type') and cond_node.type == "parenthesized_expression":
+            if hasattr(cond_node, "type") and cond_node.type == "parenthesized_expression":
                 for child in cond_node.children:
                     if child.is_named:
                         cond = self._visit_expr(child)
@@ -122,7 +122,7 @@ class JavaFrontend:
             cond_node = node.child_by_field_name("condition")
             body_node = node.child_by_field_name("body")
             cond = self._visit_expr(cond_node) if cond_node else BoolLiteral(True)
-            if hasattr(cond_node, 'type') and cond_node.type == "parenthesized_expression":
+            if hasattr(cond_node, "type") and cond_node.type == "parenthesized_expression":
                 for child in cond_node.children:
                     if child.is_named:
                         cond = self._visit_expr(child)

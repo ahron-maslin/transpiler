@@ -3,6 +3,7 @@ from transpiler.backend.python.codegen import PythonBackend
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 
+
 def test_python_frontend_parse():
     source_code = """
 def add(a: int, b: int) -> int:
@@ -22,6 +23,7 @@ def add(a: int, b: int) -> int:
     assert isinstance(ret_val, Binary)
     assert ret_val.op == BinOp.ADD
 
+
 def test_python_backend_generate():
     program = Program(
         functions=[
@@ -39,6 +41,7 @@ def test_python_backend_generate():
 
     expected = "def add(a: int, b: int) -> int:\n    return (a + b)"
     assert expected.strip() in code.strip()
+
 
 def test_python_frontend_assign_complex():
     source_code = """
@@ -73,6 +76,7 @@ def calc() -> int:
     assert isinstance(val.left, Binary)
     assert val.left.op == BinOp.ADD
 
+
 def test_python_backend_assign_complex():
     program = Program(
         functions=[
@@ -80,12 +84,17 @@ def test_python_backend_assign_complex():
                 name="calc",
                 params=[],
                 return_type=IntType,
-                body=Block([
-                    Let("a", IntType, IntLiteral(10)),
-                    Assign(Var("b"), IntLiteral(20)),
-                    Assign(Var("c"), Binary(BinOp.MUL, Binary(BinOp.ADD, Var("a"), Var("b")), IntLiteral(2))),
-                    Return(Var("c"))
-                ])
+                body=Block(
+                    [
+                        Let("a", IntType, IntLiteral(10)),
+                        Assign(Var("b"), IntLiteral(20)),
+                        Assign(
+                            Var("c"),
+                            Binary(BinOp.MUL, Binary(BinOp.ADD, Var("a"), Var("b")), IntLiteral(2)),
+                        ),
+                        Return(Var("c")),
+                    ]
+                ),
             )
         ]
     )
