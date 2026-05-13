@@ -68,14 +68,16 @@ class TestCFrontendControlFlow:
         self.fe = CFrontend()
 
     def test_if_parsed_as_ir_if(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         int check(int x) {
             if (x > 0) {
                 return 1;
             }
             return 0;
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         # Find the If statement
         if_stmts = [s for s in stmts if isinstance(s, If)]
@@ -84,55 +86,65 @@ class TestCFrontendControlFlow:
         assert if_stmts[0].condition.op == BinOp.GT
 
     def test_while_loop(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         void loop() {
             int i = 0;
             while (i < 10) {
                 i = i + 1;
             }
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         while_stmts = [s for s in stmts if isinstance(s, While)]
         assert len(while_stmts) >= 1
         assert isinstance(while_stmts[0].condition, Binary)
 
     def test_expression_statement(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         void f() {
             foo(1, 2);
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         expr_stmts = [s for s in stmts if isinstance(s, ExprStmt)]
         assert len(expr_stmts) >= 1
 
     def test_assignment_expression(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         void f() {
             int x = 0;
             x = 10;
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         assigns = [s for s in stmts if isinstance(s, Assign)]
         assert len(assigns) >= 1
 
     def test_null_literal(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         void* f() {
             return 0;
         }
-        """)
+        """
+        )
         ret = prog.functions[0].body.statements[0]
         assert isinstance(ret, Return)
 
     def test_false_literal(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         bool f() {
             return false;
         }
-        """)
+        """
+        )
         ret = prog.functions[0].body.statements[0]
         assert isinstance(ret.value, BoolLiteral)
         assert ret.value.value is False
@@ -147,11 +159,13 @@ class TestCFrontendControlFlow:
             (">", BinOp.GT),
             (">=", BinOp.GTE),
         ]:
-            prog = self.fe.parse(f"""
+            prog = self.fe.parse(
+                f"""
             bool f(int a, int b) {{
                 return a {op_c} b;
             }}
-            """)
+            """
+            )
             ret = prog.functions[0].body.statements[0]
             assert isinstance(ret.value, Binary), f"Failed for {op_c}"
             assert ret.value.op == op_ir, f"Expected {op_ir} for {op_c}, got {ret.value.op}"
@@ -164,11 +178,13 @@ class TestCFrontendControlFlow:
             ("/", BinOp.DIV),
             ("%", BinOp.MOD),
         ]:
-            prog = self.fe.parse(f"""
+            prog = self.fe.parse(
+                f"""
             int f(int a, int b) {{
                 return a {op_c} b;
             }}
-            """)
+            """
+            )
             ret = prog.functions[0].body.statements[0]
             assert isinstance(ret.value, Binary)
             assert ret.value.op == op_ir
@@ -179,7 +195,8 @@ class TestGoFrontendControlFlow:
         self.fe = GoFrontend()
 
     def test_if_statement(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         package main
         func check(x int) int {
             if x > 0 {
@@ -187,52 +204,61 @@ class TestGoFrontendControlFlow:
             }
             return 0
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         if_stmts = [s for s in stmts if isinstance(s, If)]
         assert len(if_stmts) >= 1
 
     def test_assignment_statement(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         package main
         func f() {
             x := 0
             x = 10
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         assigns = [s for s in stmts if isinstance(s, Assign)]
         assert len(assigns) >= 1
 
     def test_expression_statement(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         package main
         func f() {
             foo(1)
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         expr_stmts = [s for s in stmts if isinstance(s, ExprStmt)]
         assert len(expr_stmts) >= 1
 
     def test_nil_literal(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         package main
         func f() {
             x := nil
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         assert isinstance(stmts[0], Let)
         assert isinstance(stmts[0].value, NullLiteral)
 
     def test_false_literal(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         package main
         func f() bool {
             return false
         }
-        """)
+        """
+        )
         ret = prog.functions[0].body.statements[0]
         assert isinstance(ret.value, BoolLiteral)
         assert ret.value.value is False
@@ -243,20 +269,23 @@ class TestJavaFrontendControlFlow:
         self.fe = JavaFrontend()
 
     def test_if_statement(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         class Main {
             public static int check(int x) {
                 if (x > 0) { return 1; }
                 return 0;
             }
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         if_stmts = [s for s in stmts if isinstance(s, If)]
         assert len(if_stmts) >= 1
 
     def test_expression_and_assignment(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         class Main {
             public static void f() {
                 int x = 0;
@@ -264,31 +293,36 @@ class TestJavaFrontendControlFlow:
                 foo(x);
             }
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         assert isinstance(stmts[0], Let)
         assigns = [s for s in stmts if isinstance(s, Assign)]
         assert len(assigns) >= 1
 
     def test_null_literal(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         class Main {
             public static Object f() {
                 return null;
             }
         }
-        """)
+        """
+        )
         ret = prog.functions[0].body.statements[0]
         assert isinstance(ret.value, NullLiteral)
 
     def test_false_literal(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         class Main {
             public static boolean f() {
                 return false;
             }
         }
-        """)
+        """
+        )
         ret = prog.functions[0].body.statements[0]
         assert isinstance(ret.value, BoolLiteral)
         assert ret.value.value is False
@@ -299,32 +333,38 @@ class TestJSFrontendControlFlow:
         self.fe = JSFrontend()
 
     def test_if_statement(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         function check(x) {
             if (x > 0) { return 1; }
             return 0;
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         if_stmts = [s for s in stmts if isinstance(s, If)]
         assert len(if_stmts) >= 1
 
     def test_false_literal(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         function f() { return false; }
-        """)
+        """
+        )
         ret = prog.functions[0].body.statements[0]
         assert isinstance(ret.value, BoolLiteral)
         assert ret.value.value is False
 
     def test_strict_eq_neq_ops(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         function f(a, b) {
             if (a === b) { return 1; }
             if (a !== b) { return 2; }
             return 0;
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         if_stmts = [s for s in stmts if isinstance(s, If)]
         assert len(if_stmts) >= 2
@@ -337,25 +377,29 @@ class TestRustFrontendControlFlow:
         self.fe = RustFrontend()
 
     def test_if_statement(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         fn check(x: i32) -> i32 {
             if x > 0 {
                 return 1;
             }
             return 0;
         }
-        """)
+        """
+        )
         stmts = prog.functions[0].body.statements
         # Rust parser may handle if differently; just confirm function parsed
         assert prog.functions[0].name == "check"
         assert len(stmts) >= 1
 
     def test_false_literal(self):
-        prog = self.fe.parse("""
+        prog = self.fe.parse(
+            """
         fn f() -> bool {
             return false;
         }
-        """)
+        """
+        )
         ret = prog.functions[0].body.statements[0]
         assert isinstance(ret.value, BoolLiteral)
         assert ret.value.value is False
@@ -369,11 +413,13 @@ class TestRustFrontendControlFlow:
             (">", BinOp.GT),
             (">=", BinOp.GTE),
         ]:
-            prog = self.fe.parse(f"""
+            prog = self.fe.parse(
+                f"""
             fn f(a: i32, b: i32) -> bool {{
                 return a {op_rs} b;
             }}
-            """)
+            """
+            )
             ret = prog.functions[0].body.statements[0]
             assert isinstance(ret.value, Binary), f"Failed for {op_rs}"
             assert ret.value.op == op_ir
