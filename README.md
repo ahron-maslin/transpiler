@@ -92,7 +92,7 @@ pre-commit install
 
 ## 📦 CI/CD
 
-- **CI**: Every PR and push to `master` triggers our GitHub Actions suite, testing on Python 3.9-3.12.
+- **CI**: Every PR and push to `master` triggers our GitHub Actions suite, testing on Python 3.10-3.12.
 - **Releases**: Automated PyPI publishing on tag creation (e.g., `git tag v0.1.0 && git push origin v0.1.0`).
 
 ## 📄 License
