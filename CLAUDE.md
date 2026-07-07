@@ -3,9 +3,10 @@
 Multi-language transpiler: parses source (C, Go, Java, JavaScript, Python, Rust) into a
 shared IR, runs a type-inference pass, and generates source in any of those six languages.
 
-**Read this before trusting the README.** The README describes this as "production-grade"
-with "100% test coverage." Neither is currently true — see "Known state" below. Treat this
-as an MVP skeleton: solid architecture, thin implementation.
+**Read this before trusting the README.** An earlier version of the README claimed
+"production-grade" and "100% test coverage" — both were false (see git history). The README
+has since been corrected. Treat this as an actively-developed transpiler with real but
+bounded language coverage: see "Known state" below for exactly what is and isn't supported.
 
 ## Architecture
 
@@ -30,42 +31,72 @@ the whole codebase, not a one-off — `pyproject.toml`'s ruff config disables F4
 match. If you add a new IR node name, check for collisions manually; the linter won't catch
 shadowing.
 
-## Known state (verified 2026-07-07 audit)
+## Known state (fixed 2026-07-07, superseding the earlier audit)
 
-**Coverage claim is false.** README says 100%; actual `pytest --cov` is ~92%, with
-individual frontends (JS 82%, Rust 84%, Java 85%, Go 87%) noticeably lower. Most existing
-tests are shallow structural asserts (`isinstance(...)`, `expected in code`) rather than
-semantic/round-trip checks — passing tests are weak evidence of correctness here.
+**Coverage**: `pytest --cov` is ~86% (263 tests). Coverage dropped from the previously
+measured 92% not because tests were removed, but because a large amount of previously-dead
+code (backend node handlers, frontend control-flow branches) is now live and not every new
+branch has a test yet — a lower number here reflects more real surface area, not less
+testing. Re-run `pytest --cov=transpiler --cov-report=term-missing` before trusting this
+figure if it's been a while.
 
-**No backend emits several IR node types at all**: `For`, `Break`, `Continue`, `Cast`,
-`StructInit`, `ArrayInit`, `MapInit`, `IndexAccess`, `Unary` are silently dropped (empty
-string) by every one of the six `codegen.py` files. Don't assume "the IR supports X" means
-"some backend can generate X" — grep the specific backend's `_generate_stmt`/
-`_generate_expr` before relying on a construct.
+**All 6 backends now emit `For`, `Break`, `Continue`, `Cast`, `StructInit`, `ArrayInit`,
+`MapInit`, `IndexAccess`, `Unary`** (previously silently dropped as empty strings). Notes on
+the translation strategy: Python and Rust have no native C-style `for`, so `For` is
+downleveled to an `init` statement followed by a `while` loop with the `update` appended to
+the end of the body — if you touch this, preserve the ordering (init before the loop,
+update as the last statement in the body) or `break`/`continue` semantics inside the loop
+will silently change. `Cast`/`ArrayInit`/`MapInit` codegen for Go/Java/C has no element-type
+info on the IR (`ArrayInit`/`MapInit` don't carry one), so those backends fall back to
+`interface{}`/`Object[]`/`Map.of(...)`-style untyped containers — this is a known, accepted
+simplification, not a bug to "fix" without first extending the IR.
 
-**No backend does string escaping or reserved-word escaping.** A source string containing
-`"`/`\`/newlines, or an identifier that collides with a target-language keyword
-(`class`, `type`, `fn`, `match`, `yield`, `func`, `impl`...), produces broken or
-non-compiling output. Treat generated code as untrusted until these are fixed.
+**All 6 backends now escape string literals** (backslash/quote/newline/tab/CR via
+`backend/common.py:escape_c_style`/`escape_python_str`) **and rename identifiers that
+collide with target-language keywords** (`backend/common.py:safe_ident` + the
+`*_KEYWORDS` sets, e.g. a source function named `class` becomes `class_` in Python output).
+Every backend's `_name()` method is the enforcement point — if you add a new place an
+identifier is emitted, route it through `_name()`.
 
-**Frontends silently drop unhandled constructs instead of erroring.** E.g. Python's
-`frontend/python/parser.py` has no handling for `for`, `try/except`, `with`, augmented
-assignment, or multi-target assignment — unmatched AST nodes just return `None` and vanish
-in `_visit_block`. Go's frontend treats C-style `for init;cond;update` as a bare
-`while(cond)`, dropping init/update (an intentional-looking but dangerous simplification,
-literally commented "for as while"). When touching a frontend, prefer raising/logging on an
-unhandled node over silently continuing — the current silent-drop behavior is a footgun,
-not a pattern to imitate in new code.
+**Frontends now raise `NotImplementedError` on genuinely unsupported constructs** instead of
+silently dropping them (the prior behavior was the single biggest correctness problem in
+this codebase — e.g. Rust's `if`/`while`/`loop` were entirely unhandled and silently became
+no-ops, and **none of C/Go/Java/JS ever parsed a function call expression at all**, meaning
+`print(x)`/`fmt.Println(x)`/`System.out.println(x)`/`console.log(x)` silently vanished from
+every one of those four languages' output — this was more severe than the original audit
+realized). What's now genuinely supported: `if`/`while`/`for`/`break`/`continue`, function
+calls (including qualified calls like `fmt.Println`/`System.out.println`), unary
+expressions, and — Go specifically — multi-target assignment/declaration (staged through
+temporaries so `a, b = b, a` swaps correctly rather than executing sequentially). What's
+still explicitly unsupported and raises rather than silently drops: Python `try`/`except`/
+`with`, `for` over anything but `range(...)`, Rust `for` over anything but an integer range,
+and JS destructuring assignment. Comments (`comment`/`line_comment`/`block_comment` node
+types) are the one deliberate exception to "raise on unhandled" — they're recognized and
+silently ignored in every frontend, not a bug.
 
-**CLI failure mode**: `cli/main.py` catches backend exceptions broadly and exits 1 on real
-errors, but because of the silent-drop issue above, unsupported constructs don't raise at
-all — you can get exit-code-0 with correct-looking but semantically wrong (or empty)
-output. Don't treat "the CLI didn't error" as "the transpile was correct."
+**Go's `for` parsing was worse than previously documented**: even the "supported"
+while-style `for cond { }` was silently becoming `for true { }` (an infinite loop) because
+`child_by_field_name("condition")` returns `None` for that shape — the condition is a
+positional (unnamed-field) child, not a named field, unless the loop has a C-style
+`for_clause`. Fixed in `frontend/go/parser.py`; if you touch Go for-loop parsing again,
+re-verify field vs. positional access against the actual tree-sitter-go grammar rather than
+assuming `condition`/`initializer`/`update` are always real fields (they aren't uniformly).
 
-**Type inference (`passes/type_inference.py`) is shallow**: only walks
-`Let/If/While/For` at the statement level (`Assign` is a no-op), and only a handful of
-expression types. Don't assume inferred types are complete for structs, field access, or
-values flowing through `Assign`.
+**CLI (`cli/main.py`)** now surfaces real errors: since frontends/backends raise instead of
+silently producing wrong output, `Frontend Error: NotImplementedError: ...` /
+`Backend Error: ...` (with exception type name included) reliably means something is
+actually unsupported, and a non-zero exit code now reliably means the transpile did not
+succeed. You can trust "the CLI didn't error" much more than before, though `ArrayInit`/
+`MapInit`'s untyped-container fallback (above) can still produce output that doesn't
+type-check in a statically-typed target even though the CLI itself succeeds.
+
+**Type inference (`passes/type_inference.py`) is still shallow** (unchanged by this pass):
+only walks `Let/If/While/For` at the statement level (`Assign` is a no-op), and only a
+handful of expression types. Don't assume inferred types are complete for structs, field
+access, or values flowing through `Assign`. The C backend's print-argument-type dispatch
+(`print_str`/`print_float`/`print_bool`/`print_int`) works around this locally by tracking
+its own `self.var_types` during codegen rather than relying on the shared pass — a pattern
+you may need to repeat if another backend needs better-than-`Any` type info.
 
 **Tree-sitter versions are currently consistent** (pyproject pins `tree-sitter>=0.24.0`,
 resolves to 0.25.2; all native frontends use the matching `Language(tsX.language())` call
@@ -102,8 +133,10 @@ with tree-sitter not installed has been seen here, which can't satisfy `requires
 ## Conventions
 
 - TDD-style tests exist per language (`tests/test_<lang>.py`) plus `test_edge_cases.py` /
-  `test_deep_coverage.py` — when fixing a backend bug, check whether a test already
-  (weakly) covers it before assuming untested.
+  `test_deep_coverage.py` / `test_bugfixes.py` — when fixing a backend bug, check whether a
+  test already (weakly) covers it before assuming untested. `test_bugfixes.py` specifically
+  holds regression tests for the correctness-gap fixes described above — it's the reference
+  for what "supported" is currently expected to mean for each construct.
 - IR types are frozen-shape dataclasses; extend by adding a new `@dataclass` subclass of
   `Expr`/`Stmt` in `ir/nodes.py`, then wire it into every frontend that can produce it and
   every backend that should consume it — nothing enforces exhaustiveness, so grep after

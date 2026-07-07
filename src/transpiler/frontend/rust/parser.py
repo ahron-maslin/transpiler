@@ -100,6 +100,17 @@ class RustFrontend:
                             val = self._visit_expr(child)
                             break
                     return Return(value=val)
+                elif expr_node.type == "break_expression":
+                    return Break()
+                elif expr_node.type == "continue_expression":
+                    return Continue()
+                elif expr_node.type in (
+                    "while_expression",
+                    "loop_expression",
+                    "for_expression",
+                    "if_expression",
+                ):
+                    return self._visit_stmt(expr_node)
                 return ExprStmt(expr=self._visit_expr(expr_node))
         elif node.type == "return_expression":
             val = None
@@ -108,12 +119,73 @@ class RustFrontend:
                     val = self._visit_expr(child)
                     break
             return Return(value=val)
+        elif node.type == "break_expression":
+            return Break()
+        elif node.type == "continue_expression":
+            return Continue()
+        elif node.type == "if_expression":
+            cond_node = node.child_by_field_name("condition")
+            then_node = node.child_by_field_name("consequence")
+            else_node = node.child_by_field_name("alternative")
+            cond = self._visit_expr(cond_node) if cond_node else BoolLiteral(True)
+            then_block = self._visit_block(then_node) if then_node else Block()
+            else_block = self._visit_else_clause(else_node) if else_node else None
+            return If(condition=cond, then_block=then_block, else_block=else_block)
+        elif node.type == "while_expression":
+            cond_node = node.child_by_field_name("condition")
+            body_node = node.child_by_field_name("body")
+            cond = self._visit_expr(cond_node) if cond_node else BoolLiteral(True)
+            body = self._visit_block(body_node) if body_node else Block()
+            return While(condition=cond, body=body)
+        elif node.type == "loop_expression":
+            body_node = node.child_by_field_name("body")
+            body = self._visit_block(body_node) if body_node else Block()
+            return While(condition=BoolLiteral(True), body=body)
+        elif node.type == "for_expression":
+            pattern_node = node.child_by_field_name("pattern")
+            value_node = node.child_by_field_name("value")
+            body_node = node.child_by_field_name("body")
+            body = self._visit_block(body_node) if body_node else Block()
+            if (
+                pattern_node is not None
+                and pattern_node.type == "identifier"
+                and value_node is not None
+                and value_node.type == "range_expression"
+            ):
+                named = [c for c in value_node.children if c.is_named]
+                if len(named) == 2:
+                    inclusive = any(
+                        (not c.is_named) and c.type == "..=" for c in value_node.children
+                    )
+                    var_name = pattern_node.text.decode("utf8")
+                    start_expr = self._visit_expr(named[0])
+                    end_expr = self._visit_expr(named[1])
+                    cmp_op = BinOp.LTE if inclusive else BinOp.LT
+                    init = Let(name=var_name, type=AnyType, value=start_expr)
+                    cond = Binary(op=cmp_op, left=Var(var_name), right=end_expr)
+                    update = Assign(
+                        target=Var(var_name),
+                        value=Binary(op=BinOp.ADD, left=Var(var_name), right=IntLiteral(1)),
+                    )
+                    return For(init=init, condition=cond, update=update, body=body)
+            raise NotImplementedError("RustFrontend: unsupported for-loop over non-range iterable")
+        elif node.type in ("line_comment", "block_comment"):
+            return None
         elif node.is_named:
             # check if it's the last expression in block (implicit return)
             # but we just wrap in ExprStmt for MVP
             return ExprStmt(expr=self._visit_expr(node))
 
         return None
+
+    def _visit_else_clause(self, node: Node) -> Block:
+        for child in node.children:
+            if child.type == "block":
+                return self._visit_block(child)
+            if child.type == "if_expression":
+                stmt = self._visit_stmt(child)
+                return Block(statements=[stmt] if stmt else [])
+        return Block()
 
     def _visit_expr(self, node: Node) -> Expr:
         if node.type == "integer_literal":
@@ -169,4 +241,10 @@ class RustFrontend:
             for child in node.children:
                 if child.is_named:
                     return self._visit_expr(child)
-        return NullLiteral()
+        elif node.type == "unary_expression":
+            arg_node = next((c for c in node.children if c.is_named), None)
+            op_text = node.children[0].text.decode("utf8") if node.children else ""
+            if arg_node:
+                un_op = UnOp.NOT if op_text == "!" else UnOp.NEG
+                return Unary(op=un_op, expr=self._visit_expr(arg_node))
+        raise NotImplementedError(f"RustFrontend: unsupported expression {node.type}")
