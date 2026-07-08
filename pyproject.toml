@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "transpiler"
-version = "0.1.1"
+version = "1.0.0"
 description = "Multi-Language Transpiler Framework"
 authors = [
     { name = "Developer", email = "developer@example.com" }
