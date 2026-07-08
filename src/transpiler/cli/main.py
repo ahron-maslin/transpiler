@@ -59,7 +59,7 @@ def main():
     try:
         ir_program = frontend.parse(source_code)
     except Exception as e:
-        print(f"Frontend Error: {e}", file=sys.stderr)
+        print(f"Frontend Error: {type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(1)
 
     # Run passes
@@ -83,7 +83,7 @@ def main():
         target_code = backend.generate(ir_program)
         print(target_code)
     except Exception as e:
-        print(f"Backend Error: {e}", file=sys.stderr)
+        print(f"Backend Error: {type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(1)
 
 

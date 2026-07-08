@@ -129,7 +129,41 @@ class JavaFrontend:
                         break
             body = self._visit_block(body_node) if body_node else Block()
             return While(condition=cond, body=body)
-        return None
+        elif node.type == "for_statement":
+            init_node = node.child_by_field_name("init")
+            cond_node = node.child_by_field_name("condition")
+            update_node = node.child_by_field_name("update")
+            body_node = node.child_by_field_name("body")
+            init_stmt = self._visit_for_clause_stmt(init_node) if init_node else Block()
+            cond = self._visit_expr(cond_node) if cond_node else BoolLiteral(True)
+            update_stmt = self._visit_for_clause_stmt(update_node) if update_node else Block()
+            body = self._visit_block(body_node) if body_node else Block()
+            return For(init=init_stmt, condition=cond, update=update_stmt, body=body)
+        elif node.type == "break_statement":
+            return Break()
+        elif node.type == "continue_statement":
+            return Continue()
+        elif node.type in ("line_comment", "block_comment"):
+            return None
+        raise NotImplementedError(f"JavaFrontend: unsupported statement {node.type}")
+
+    def _visit_for_clause_stmt(self, node: Node) -> Stmt:
+        if node.type == "update_expression":
+            named = [c for c in node.children if c.is_named]
+            if named:
+                var = self._visit_expr(named[0])
+                op = BinOp.ADD if "++" in node.text.decode("utf8") else BinOp.SUB
+                return Assign(target=var, value=Binary(op=op, left=var, right=IntLiteral(1)))
+        elif node.type == "assignment_expression":
+            left = node.child_by_field_name("left")
+            right = node.child_by_field_name("right")
+            if left and right:
+                return Assign(target=self._visit_expr(left), value=self._visit_expr(right))
+        elif node.type == "local_variable_declaration":
+            stmt = self._visit_stmt(node)
+            if stmt:
+                return stmt
+        return ExprStmt(expr=self._visit_expr(node))
 
     def _visit_expr(self, node: Node) -> Expr:
         if node.type == "decimal_integer_literal":
@@ -189,4 +223,31 @@ class JavaFrontend:
             for child in node.children:
                 if child.is_named:
                     return self._visit_expr(child)
-        return NullLiteral()
+        elif node.type == "unary_expression":
+            op_node = node.child_by_field_name("operator")
+            arg_node = next((c for c in node.children if c.is_named), None)
+            if op_node and arg_node:
+                un_op = UnOp.NOT if op_node.text.decode("utf8") == "!" else UnOp.NEG
+                return Unary(op=un_op, expr=self._visit_expr(arg_node))
+        elif node.type == "method_invocation":
+            name_node = node.child_by_field_name("name")
+            object_node = node.child_by_field_name("object")
+            args_node = node.child_by_field_name("arguments")
+            name = name_node.text.decode("utf8") if name_node else ""
+            func = (
+                FieldAccess(object=self._visit_expr(object_node), field=name)
+                if object_node
+                else Var(name)
+            )
+            args = (
+                [self._visit_expr(c) for c in args_node.children if c.is_named] if args_node else []
+            )
+            return Call(function=func, args=args)
+        elif node.type == "field_access":
+            object_node = node.child_by_field_name("object")
+            field_node = node.child_by_field_name("field")
+            if object_node and field_node:
+                return FieldAccess(
+                    object=self._visit_expr(object_node), field=field_node.text.decode("utf8")
+                )
+        raise NotImplementedError(f"JavaFrontend: unsupported expression {node.type}")

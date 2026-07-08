@@ -2,7 +2,7 @@ import tree_sitter_go as tsgo
 from tree_sitter import Language, Parser, Node
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
-from typing import Optional
+from typing import List, Optional
 
 GO_LANGUAGE = Language(tsgo.language())
 
@@ -67,14 +67,42 @@ class GoFrontend:
             if child.type == "statement_list":
                 for stmt_child in child.children:
                     if stmt_child.is_named:
-                        stmt = self._visit_stmt(stmt_child)
-                        if stmt:
-                            stmts.append(stmt)
+                        stmts.extend(self._visit_stmt_multi(stmt_child))
             elif child.is_named and child.type != "statement_list":
-                stmt = self._visit_stmt(child)
-                if stmt:
-                    stmts.append(stmt)
+                stmts.extend(self._visit_stmt_multi(child))
         return Block(statements=stmts)
+
+    def _visit_stmt_multi(self, node: Node) -> List[Stmt]:
+        if node.type in ("short_var_declaration", "assignment_statement"):
+            left = node.child_by_field_name("left")
+            right = node.child_by_field_name("right")
+            if left and right:
+                names = [c for c in left.children if c.is_named]
+                vals = [c for c in right.children if c.is_named]
+                is_decl = node.type == "short_var_declaration"
+                if len(names) == 1 and len(vals) == 1:
+                    value = self._visit_expr(vals[0])
+                    if is_decl:
+                        return [Let(name=names[0].text.decode("utf8"), type=AnyType, value=value)]
+                    return [Assign(target=self._visit_expr(names[0]), value=value)]
+                # Go evaluates all RHS values before any target is bound (needed for
+                # correctness of e.g. `a, b = b, a`); stage through temporaries.
+                stmts: List[Stmt] = []
+                temp_names = []
+                for idx, v in enumerate(vals):
+                    temp_name = f"__go_multi_tmp_{id(node)}_{idx}"
+                    stmts.append(Let(name=temp_name, type=AnyType, value=self._visit_expr(v)))
+                    temp_names.append(temp_name)
+                for n, temp_name in zip(names, temp_names):
+                    if is_decl:
+                        stmts.append(
+                            Let(name=n.text.decode("utf8"), type=AnyType, value=Var(temp_name))
+                        )
+                    else:
+                        stmts.append(Assign(target=self._visit_expr(n), value=Var(temp_name)))
+                return stmts
+        stmt = self._visit_stmt(node)
+        return [stmt] if stmt else []
 
     def _visit_stmt(self, node: Node) -> Optional[Stmt]:
         if node.type == "return_statement":
@@ -94,25 +122,6 @@ class GoFrontend:
                     break
             if expr_node:
                 return ExprStmt(expr=self._visit_expr(expr_node))
-        elif node.type == "short_var_declaration":
-            left = node.child_by_field_name("left")
-            right = node.child_by_field_name("right")
-            if left and right:
-                # Need to handle expression list, but we take first child for MVP
-                name_child = left.children[0] if left.children else None
-                val_child = right.children[0] if right.children else None
-                if name_child and val_child:
-                    name = name_child.text.decode("utf8")
-                    val = self._visit_expr(val_child)
-                    return Let(name=name, type=AnyType, value=val)
-        elif node.type == "assignment_statement":
-            left = node.child_by_field_name("left")
-            right = node.child_by_field_name("right")
-            if left and right:
-                l_child = left.children[0] if left.children else None
-                r_child = right.children[0] if right.children else None
-                if l_child and r_child:
-                    return Assign(target=self._visit_expr(l_child), value=self._visit_expr(r_child))
         elif node.type == "var_declaration":
             for child in node.children:
                 if child.type == "var_spec":
@@ -139,13 +148,46 @@ class GoFrontend:
             else_block = self._visit_block(else_node) if else_node else None
             return If(condition=cond, then_block=then_block, else_block=else_block)
         elif node.type == "for_statement":
-            # Go uses for as while: for condition { body }
-            cond_node = node.child_by_field_name("condition")
             body_node = node.child_by_field_name("body")
-            cond = self._visit_expr(cond_node) if cond_node else BoolLiteral(True)
             body = self._visit_block(body_node) if body_node else Block()
-            return While(condition=cond, body=body)
-        return None
+
+            for_clause = None
+            cond_node = None
+            for child in node.children:
+                if child.type == "for_clause":
+                    for_clause = child
+                elif child.is_named and child.type != "block":
+                    cond_node = child
+
+            if for_clause:
+                init_node = for_clause.child_by_field_name("initializer")
+                clause_cond_node = for_clause.child_by_field_name("condition")
+                update_node = for_clause.child_by_field_name("update")
+                init_stmts = self._visit_stmt_multi(init_node) if init_node else []
+                init_stmt = init_stmts[0] if len(init_stmts) == 1 else Block(statements=init_stmts)
+                cond = self._visit_expr(clause_cond_node) if clause_cond_node else BoolLiteral(True)
+                update_stmts = self._visit_stmt_multi(update_node) if update_node else []
+                update_stmt = (
+                    update_stmts[0] if len(update_stmts) == 1 else Block(statements=update_stmts)
+                )
+                return For(init=init_stmt, condition=cond, update=update_stmt, body=body)
+            elif cond_node:
+                return While(condition=self._visit_expr(cond_node), body=body)
+            else:
+                return While(condition=BoolLiteral(True), body=body)
+        elif node.type == "inc_statement" or node.type == "dec_statement":
+            target = next((c for c in node.children if c.is_named), None)
+            if target:
+                var = self._visit_expr(target)
+                op = BinOp.ADD if node.type == "inc_statement" else BinOp.SUB
+                return Assign(target=var, value=Binary(op=op, left=var, right=IntLiteral(1)))
+        elif node.type == "break_statement":
+            return Break()
+        elif node.type == "continue_statement":
+            return Continue()
+        elif node.type == "comment":
+            return None
+        raise NotImplementedError(f"GoFrontend: unsupported statement {node.type}")
 
     def _visit_expr(self, node: Node) -> Expr:
         if node.type == "int_literal":
@@ -205,4 +247,26 @@ class GoFrontend:
             for child in node.children:
                 if child.is_named:
                     return self._visit_expr(child)
-        return NullLiteral()
+        elif node.type == "unary_expression":
+            op_node = node.child_by_field_name("operator")
+            arg_node = next((c for c in node.children if c.is_named), None)
+            if op_node and arg_node:
+                op_str = op_node.text.decode("utf8")
+                un_op = UnOp.NOT if op_str == "!" else UnOp.NEG
+                return Unary(op=un_op, expr=self._visit_expr(arg_node))
+        elif node.type == "call_expression":
+            func_node = node.child_by_field_name("function")
+            args_node = node.child_by_field_name("arguments")
+            func = self._visit_expr(func_node) if func_node else NullLiteral()
+            args = (
+                [self._visit_expr(c) for c in args_node.children if c.is_named] if args_node else []
+            )
+            return Call(function=func, args=args)
+        elif node.type == "selector_expression":
+            operand_node = node.child_by_field_name("operand")
+            field_node = node.child_by_field_name("field")
+            if operand_node and field_node:
+                return FieldAccess(
+                    object=self._visit_expr(operand_node), field=field_node.text.decode("utf8")
+                )
+        raise NotImplementedError(f"GoFrontend: unsupported expression {node.type}")

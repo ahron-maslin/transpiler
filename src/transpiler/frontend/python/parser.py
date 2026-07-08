@@ -17,7 +17,19 @@ class PythonFrontend:
             elif isinstance(stmt, ast.ClassDef):
                 program.structs.append(self._visit_struct(stmt))
             elif isinstance(stmt, ast.Assign):
-                pass  # global assign ignored for MVP
+                if len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
+                    program.globals.append(
+                        GlobalVar(
+                            name=stmt.targets[0].id,
+                            type=AnyType,
+                            value=self._visit_expr(stmt.value),
+                        )
+                    )
+            elif isinstance(stmt, ast.AnnAssign):
+                if isinstance(stmt.target, ast.Name):
+                    typ = self._parse_type(stmt.annotation)
+                    value = self._visit_expr(stmt.value) if stmt.value else None
+                    program.globals.append(GlobalVar(name=stmt.target.id, type=typ, value=value))
         return program
 
     def _visit_function(self, node: ast.FunctionDef) -> Function:
@@ -60,10 +72,23 @@ class PythonFrontend:
     def _visit_block(self, nodes: List[ast.stmt]) -> Block:
         stmts = []
         for n in nodes:
-            stmt = self._visit_stmt(n)
-            if stmt:
-                stmts.append(stmt)
+            stmts.extend(self._visit_stmt_multi(n))
         return Block(statements=stmts)
+
+    def _visit_stmt_multi(self, node: ast.stmt) -> List[Stmt]:
+        if isinstance(node, ast.Assign) and len(node.targets) > 1:
+            value = self._visit_expr(node.value)
+            return [Assign(target=self._visit_expr(t), value=value) for t in node.targets]
+        stmt = self._visit_stmt(node)
+        return [stmt] if stmt else []
+
+    _AUGASSIGN_OPS = {
+        ast.Add: BinOp.ADD,
+        ast.Sub: BinOp.SUB,
+        ast.Mult: BinOp.MUL,
+        ast.Div: BinOp.DIV,
+        ast.Mod: BinOp.MOD,
+    }
 
     def _visit_stmt(self, node: ast.stmt) -> Optional[Stmt]:
         if isinstance(node, ast.Return):
@@ -76,6 +101,13 @@ class PythonFrontend:
                 target = self._visit_expr(node.targets[0])
                 value = self._visit_expr(node.value)
                 return Assign(target=target, value=value)
+        elif isinstance(node, ast.AugAssign):
+            op = self._AUGASSIGN_OPS.get(type(node.op))
+            if op is None:
+                raise NotImplementedError(f"unsupported augmented assignment operator: {node.op}")
+            target = self._visit_expr(node.target)
+            value = self._visit_expr(node.value)
+            return Assign(target=target, value=Binary(op=op, left=target, right=value))
         elif isinstance(node, ast.AnnAssign):
             if isinstance(node.target, ast.Name):
                 name = node.target.id
@@ -93,7 +125,55 @@ class PythonFrontend:
             cond = self._visit_expr(node.test)
             body = self._visit_block(node.body)
             return While(condition=cond, body=body)
-        return None
+        elif isinstance(node, ast.For):
+            return self._visit_for(node)
+        elif isinstance(node, ast.Break):
+            return Break()
+        elif isinstance(node, ast.Continue):
+            return Continue()
+        elif isinstance(node, ast.Try):
+            raise NotImplementedError("PythonFrontend: try/except is not supported")
+        elif isinstance(node, ast.With):
+            raise NotImplementedError("PythonFrontend: with-statements are not supported")
+        elif isinstance(node, ast.Pass):
+            return None
+        raise NotImplementedError(f"PythonFrontend: unsupported statement {type(node).__name__}")
+
+    def _visit_for(self, node: ast.For) -> For:
+        if node.orelse:
+            raise NotImplementedError("PythonFrontend: for/else is not supported")
+        if not isinstance(node.target, ast.Name):
+            raise NotImplementedError("PythonFrontend: only simple for-loop targets are supported")
+        if not (
+            isinstance(node.iter, ast.Call)
+            and isinstance(node.iter.func, ast.Name)
+            and node.iter.func.id == "range"
+            and 1 <= len(node.iter.args) <= 3
+        ):
+            raise NotImplementedError(
+                f"PythonFrontend: unsupported for-loop iterable: {ast.dump(node.iter)}"
+            )
+
+        var_name = node.target.id
+        args = node.iter.args
+        if len(args) == 1:
+            start, end, step = IntLiteral(0), self._visit_expr(args[0]), IntLiteral(1)
+        elif len(args) == 2:
+            start, end, step = self._visit_expr(args[0]), self._visit_expr(args[1]), IntLiteral(1)
+        else:
+            start, end, step = (
+                self._visit_expr(args[0]),
+                self._visit_expr(args[1]),
+                self._visit_expr(args[2]),
+            )
+
+        init = Let(name=var_name, type=IntType, value=start)
+        condition = Binary(op=BinOp.LT, left=Var(var_name), right=end)
+        update = Assign(
+            target=Var(var_name), value=Binary(op=BinOp.ADD, left=Var(var_name), right=step)
+        )
+        body = self._visit_block(node.body)
+        return For(init=init, condition=condition, update=update, body=body)
 
     def _visit_expr(self, node: ast.expr) -> Expr:
         if isinstance(node, ast.Constant):
@@ -144,6 +224,23 @@ class PythonFrontend:
                 right = self._visit_expr(node.comparators[0])
                 if op:
                     return Binary(op=op, left=left, right=right)
+        elif isinstance(node, ast.BoolOp):
+            op = BinOp.AND if isinstance(node.op, ast.And) else BinOp.OR
+            values = [self._visit_expr(v) for v in node.values]
+            expr = values[0]
+            for v in values[1:]:
+                expr = Binary(op=op, left=expr, right=v)
+            return expr
+        elif isinstance(node, ast.UnaryOp):
+            if isinstance(node.op, ast.Not):
+                return Unary(op=UnOp.NOT, expr=self._visit_expr(node.operand))
+            elif isinstance(node.op, ast.USub):
+                return Unary(op=UnOp.NEG, expr=self._visit_expr(node.operand))
+            raise NotImplementedError(f"PythonFrontend: unsupported unary operator: {node.op}")
+        elif isinstance(node, ast.Subscript):
+            collection = self._visit_expr(node.value)
+            index_node = node.slice
+            return IndexAccess(collection=collection, index=self._visit_expr(index_node))
         elif isinstance(node, ast.Call):
             func = self._visit_expr(node.func)
             args = [self._visit_expr(arg) for arg in node.args]
@@ -151,4 +248,4 @@ class PythonFrontend:
         elif isinstance(node, ast.Attribute):
             obj = self._visit_expr(node.value)
             return FieldAccess(object=obj, field=node.attr)
-        return NullLiteral()
+        raise NotImplementedError(f"PythonFrontend: unsupported expression {type(node).__name__}")

@@ -1,6 +1,6 @@
 # Transpiler 🚀
 
-A production-grade, multi-language transpiler framework. Parse source code from one language into a language-agnostic Intermediate Representation (IR), apply semantic passes, and generate source code in your target language.
+An experimental multi-language transpiler framework. Parse source code from one language into a language-agnostic Intermediate Representation (IR), apply semantic passes, and generate source code in your target language.
 
 [![CI](https://github.com/ahron-maslin/transpiler/actions/workflows/ci.yml/badge.svg)](https://github.com/ahron-maslin/transpiler/actions)
 [![PyPI](https://img.shields.io/pypi/v/transpiler.svg)](https://pypi.org/project/transpiler/)
@@ -8,11 +8,12 @@ A production-grade, multi-language transpiler framework. Parse source code from 
 
 ## ✨ Features
 
-- **Multi-Source Parsing**: Support for C, Go, Java, JavaScript, Python, and Rust via tree-sitter.
-- **Language-Agnostic IR**: A robust internal representation that preserves semantics across paradigms.
-- **Intelligent Passes**: Built-in type inference and semantic analysis to ensure correctness.
-- **Cross-Language Generation**: High-quality code generation for all supported target languages.
-- **Production Ready**: Fully type-hinted, linted with Ruff, and verified with 100% test coverage.
+- **Multi-Source Parsing**: Support for C, Go, Java, JavaScript, and Rust via tree-sitter, and Python via the standard library `ast` module.
+- **Language-Agnostic IR**: An internal representation covering common control flow, structs, arrays, maps, and casts.
+- **Intelligent Passes**: A basic type-inference pass for `Any`-typed locals.
+- **Cross-Language Generation**: Code generation for all six supported target languages, covering the common subset of each language's control flow and literal syntax.
+
+This project is under active development. It handles core control flow (if/while/for/break/continue), function calls, structs, and casts across all six languages, but does not yet support exceptions, `with`/context-manager blocks, or non-range iteration in `for` loops — unsupported constructs raise a clear error at parse time rather than silently producing wrong output. See `CLAUDE.md` for the current, detailed list of what is and isn't supported.
 
 ## 🛠 Installation
 
