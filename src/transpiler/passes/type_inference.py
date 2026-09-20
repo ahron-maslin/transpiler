@@ -1,12 +1,12 @@
-from typing import Dict
+from typing import Dict, Optional
 from transpiler.ir.nodes import *
 from transpiler.ir.types import *
 
 
 class TypeInferencePass:
-    def __init__(self):
+    def __init__(self, external_functions: Optional[Dict[str, Function]] = None):
         self.env: Dict[str, Type] = {}
-        self.functions: Dict[str, Function] = {}
+        self.functions: Dict[str, Function] = dict(external_functions) if external_functions else {}
 
     def execute(self, program: Program):
         for func in program.functions:

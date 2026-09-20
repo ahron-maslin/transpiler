@@ -21,8 +21,11 @@ src/transpiler/
                      use tree-sitter (tree_sitter_<lang> + Language(tsX.language())).
   passes/type_inference.py    single shallow forward pass over each function body
   backend/<lang>/codegen.py   IR -> source string
-  cli/main.py         argparse CLI: reads a file by extension, runs one frontend, the
-                     type-inference pass, then one backend; prints to stdout only
+  project/                    large-scale project conversion subsystem: scanner,
+                             incremental cache, symbol indexer, manifest generator,
+                             reporter, and concurrent converter
+  cli/main.py         argparse CLI: supports single-file conversion (prints to stdout
+                             or file) and multi-file project conversion across directories
 ```
 
 Every frontend/backend file does `from transpiler.ir.nodes import *` and
