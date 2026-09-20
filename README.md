@@ -69,6 +69,49 @@ function fib(n) {
 }
 ```
 
+## 📁 Large-Scale Project Conversion
+
+Transpile entire multi-file codebases while preserving directory structure, handling cross-file symbol indexing, and generating target-language project manifests:
+
+```bash
+# Convert a Python project to Rust
+transpiler ./my_python_project --to rust -o ./my_rust_project
+
+# Convert with parallel workers and asset copying
+transpiler ./src --to js -o ./dist -j 8 --copy-assets
+
+# Dry-run preview with JSON report export
+transpiler ./src --to go -o ./dist --dry-run --report report.json
+```
+
+### Key Capabilities
+
+- **Parallel Processing**: Multi-worker concurrent conversion across CPU cores (`-j` / `--jobs`).
+- **Incremental Caching**: SHA-256 content hashing skips unchanged files on subsequent runs (`--incremental`, `--force`).
+- **Fault-Tolerant Resilience**: Reports per-file status without aborting conversion of valid files (`--fail-fast` available).
+- **Target Manifest Generation**: Automatically generates `Cargo.toml` (Rust), `package.json` (JavaScript), `go.mod` (Go), or `__init__.py` (Python).
+- **Project Configuration**: Load settings from `transpiler.json` (`--config transpiler.json`).
+- **Ignore & Gitignore Support**: Respects `.gitignore` rules and custom exclusion patterns (`--exclude`).
+
+### Project Configuration File (`transpiler.json`)
+
+```json
+{
+  "source_dir": "src",
+  "target_dir": "dist",
+  "target_lang": "rust",
+  "jobs": 4,
+  "copy_assets": true,
+  "include": ["**/*.py"],
+  "exclude": ["**/tests/**"]
+}
+```
+
+Run with:
+```bash
+transpiler --config transpiler.json
+```
+
 ## 🧪 Development
 
 We value code quality and maintainability.
